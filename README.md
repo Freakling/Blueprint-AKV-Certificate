@@ -1,5 +1,3 @@
-# Blueprint-AKV-Certificate
-
 Creating a comprehensive solution blueprint for managing client certificates involves several steps and considerations. Below is a detailed blueprint outline that addresses the needs of an organization to manage and use client certificates in a controlled and secure manner. 
 
 ### Solution Blueprint: Managing Client Certificates in Azure Key Vault
@@ -45,15 +43,15 @@ This blueprint covers:
 
 ### 4. Deployment Options for Key Vault Management
 
-#### Option A: Centralized Key Vault Management
+#### Option A: Segregated Key Vaults within Centralized Management
 
-1. **Centralized Key Vault**:
-   - CIT manages a centralized Key Vault in a dedicated landing zone.
-   - Certificates for different applications are stored in this centralized Key Vault.
+1. **Segregated Key Vaults**:
+   - CIT manages the creation and renewal of certificates.
+   - Each application has its own dedicated Key Vault within a centralized landing zone.
 
 2. **Access Delegation**:
-   - Application Teams are granted access to specific certificates through Azure RBAC and Key Vault Access Policies.
-   - Example Policy: Only Application Identity `AppA` has access to `CertificateA`.
+   - Only the application identity for a specific workload/application is granted access to its dedicated Key Vault.
+   - Azure RBAC is used to enforce access policies, ensuring that only authorized applications can access their certificates.
 
 3. **Diagram**:
    ```
@@ -61,20 +59,24 @@ This blueprint covers:
    | Centralized Key Vault Landing Zone     |
    |                                        |
    | +----------------------------------+   |
-   | | Azure Key Vault                  |   |
-   | | - CertificateA (AppA)            |   |
-   | | - CertificateB (AppB)            |   |
+   | | Key Vault for AppA               |   |
+   | | - CertificateA                   |   |
+   | +----------------------------------+   |
+   |                                        |
+   | +----------------------------------+   |
+   | | Key Vault for AppB               |   |
+   | | - CertificateB                   |   |
    | +----------------------------------+   |
    +----------------------------------------+
-              |                   |
-              |                   |
-   +----------+--------+  +-------+-----------+
-   | AppA Landing Zone  |  | AppB Landing Zone |
-   |                    |  |                   |
-   | +---------------+  |  | +---------------+ |
-   | | Workload/AppA |  |  | | Workload/AppB | |
-   | +---------------+  |  | +---------------+ |
-   +--------------------+  +-------------------+
+              |                           |
+              |                           |
+   +----------+--------+       +----------+--------+
+   | AppA Landing Zone  |       | AppB Landing Zone  |
+   |                    |       |                    |
+   | +---------------+  |       | +---------------+  |
+   | | Workload/AppA |  |       | | Workload/AppB |  |
+   | +---------------+  |       | +---------------+  |
+   +--------------------+       +--------------------+
    ```
 
 #### Option B: Distributed Key Vault Management
@@ -109,18 +111,18 @@ This blueprint covers:
 #### Certificate Issuance and Storage
 
 1. **Issuance**:
-   - Use on-premises CA to issue the certificate.
-   - Ensure certificates are non-exportable.
+   - CIT uses the on-premises CA to issue the client certificate for AppA.
+   - Ensure the certificate is non-exportable.
    
 2. **Storage**:
-   - Import the certificate into Azure Key Vault using a secure method.
-   - Set appropriate Key Vault Access Policies.
+   - Import the certificate into the dedicated Key Vault for AppA.
+   - Repeat for other applications, ensuring each has a separate Key Vault.
 
 #### Certificate Renewal
 
 1. **Renewal**:
    - CIT renews certificates using the on-premises CA.
-   - Update the renewed certificates in Azure Key Vault.
+   - Update the renewed certificates in the corresponding Azure Key Vault.
    
 2. **Notification**:
    - Set up notifications for upcoming certificate expirations.
@@ -129,13 +131,19 @@ This blueprint covers:
 #### Access Control Configuration
 
 1. **RBAC and Policies**:
-   - Use Azure AD to manage application identities.
-   - Configure Key Vault Access Policies to restrict access.
+   - Create an Azure AD identity for each application (e.g., AppAIdentity for AppA).
+   - Assign the `Key Vault Certificate User` role to AppAIdentity for the Key Vault containing CertificateA.
+   - Ensure no other identities have access to this Key Vault.
    
-2. **Monitoring and Auditing**:
-   - Enable logging and monitoring for Key Vault access.
-   - Regularly audit access policies and certificates.
+2. **Example Policy Configuration for AppA**:
+   - **Key Vault Name**: `KeyVault-AppA`
+   - **Assigned Role**: `Key Vault Certificate User`
+   - **Assigned Identity**: `AppAIdentity`
+
+3. **Monitoring and Auditing**:
+   - Enable logging and monitoring for each Key Vault.
+   - Regularly audit access policies and certificate usage.
 
 ### Conclusion
 
-This blueprint ensures secure and controlled management of client certificates, providing the necessary flexibility for different organizational structures and needs. By centralizing or distributing Key Vault management, the organization can choose the most suitable approach to meet their requirements while ensuring robust security and compliance.
+This blueprint ensures secure and controlled management of client certificates, providing the necessary flexibility for different organizational structures and needs. By centralizing or distributing Key Vault management, the organization can choose the most suitable approach to meet their requirements while ensuring robust security and compliance. The revised Option A ensures alignment with the principle of least privilege by segregating access to certificates, enhancing security, and maintaining centralized control.
